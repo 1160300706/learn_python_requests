@@ -80,8 +80,18 @@ class Request(object):
 		self.auth = None
 		self.sent = False
 
-它首先声明了一个私有的元组类变量_METHODS，通过它来记录该类可以实现哪些方法，
-然后对类进行了初始化，**初始化时并没有直接将该类的属性直接进行初始化，
-而是选择在实现GET、POST等方法的时候根据方法的不同去初始化方法需要的属性，
-这种做法让Request类的实现更加灵活。**
+它首先声明了一个私有的元组类变量_METHODS，通过它来记录该类有哪些方法，
+然后在对类进行了初始化，**初始化时并没有直接把类的属性作为参数进行初始化，
+而是选择在实现GET、POST等方法时根据方法的实现方式去初始化方法所需要的属性，
+这样可以让Request类的实现更加灵活。**
+接着重写了__repr__方法，
+
+	def __repr__(self):
+		try:
+			repr = '<Request [%s]>' % (self.method)
+		except:
+			repr = '<Request object>'
+		return repr
+
+该方法提供的功能是：当直接打印该类的实例化对象时，系统会输出对象的自我描述信息。
 
