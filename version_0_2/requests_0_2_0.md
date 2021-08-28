@@ -94,4 +94,61 @@ class Request(object):
 		return repr
 
 该方法提供的功能是：当直接打印该类的实例化对象时，系统会输出对象的自我描述信息。
+然后在__setattr__中对method进行了限制，如果输入的method的值不在_METHODS中，就会抛出InvalidMethod的异常。
 
+	def __setattr__(self, name, value):
+		if (name == 'method') and (value):
+			if not value in self._METHODS:
+				raise InvalidMethod() 
+		
+		object.__setattr__(self, name, value)
+此处对method的检查实现的比较有意思，它是和Request类的初始化实现相照应的。
+前面我们说过Request类初始化时并没有把类的属性作为参数进行初始化 而是在实现具体方法时再去对类的属性进行赋值；
+而__setattr__的执行逻辑是：**每次对类的属性进行初始化时都会自动执行方法**，
+这样才能在初始化时将self.method设置为None。
+
+接下来看send方法，它是Request类重要逻辑的实现部分，我们还是以GET方法为例，其实现如下：
+
+	def send(self, anyway=False):
+		"""Sends the request. Returns True of successfull, false if not.
+		    If there was an HTTPError during transmission,
+		    self.response.status_code will contain the HTTPError code.
+
+		    Once a request is successfully sent, `sent` will equal True.
+		
+		    :param anyway: If True, request will be sent, even if it has
+		    already been sent.
+		"""
+		self._checks()
+
+		success = False
+		
+		if self.method in ('GET', 'HEAD', 'DELETE'):
+			if (not self.sent) or anyway:
+
+				# url encode GET params if it's a dict
+				if isinstance(self.params, dict):
+					params = urllib.urlencode(self.params)
+				else:
+
+					params = self.params
+
+				req = _Request(("%s?%s" % (self.url, params)), method=self.method)
+
+				if self.headers:
+					req.headers = self.headers
+
+				opener = self._get_opener()
+
+				try:
+					resp = opener(req)
+					self.response.status_code = resp.code
+					self.response.headers = resp.info().dict
+					if self.method.lower() == 'get':
+						self.response.content = resp.read()
+
+					success = True
+				except urllib2.HTTPError, why:
+					self.response.status_code = why.code
+
+首先调用了_checks方法，对url是否初始化进行了检查，然后
