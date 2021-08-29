@@ -151,4 +151,32 @@ class Request(object):
 				except urllib2.HTTPError, why:
 					self.response.status_code = why.code
 
-首先调用了_checks方法，对url是否初始化进行了检查，然后
+首先调用了_checks方法，对url是否初始化进行了检查(并没有对URL的格式和内容进行检查)，
+然后对输入的params参数调用urllib.urlencode方法将键值对的参数格式化使用&划分，
+使用效果如下：params = urllib.urlencode({"a":1,"b":2})则params=“a=1&b=2”。
+接着声明了_Request的对象，该类的实现如下： 
+
+class _Request(urllib2.Request):
+
+	"""Hidden wrapper around the urllib2.Request object. Allows for manual
+	setting of HTTP methods.
+	"""
+
+	def __init__(self, url,
+					data=None, headers={}, origin_req_host=None,
+					unverifiable=False, method=None):
+		urllib2.Request.__init__( self, url, data, headers, origin_req_host,
+								  unverifiable)
+	   	self.method = method
+
+	def get_method(self):
+		if self.method:
+			return self.method
+
+		return urllib2.Request.get_method(self)
+
+它继承自urllib2的Request，在初始化时直接调用了父类的初始化方法。
+然后调用了_get_opener方法，并返回一个urllib2的opener对象，接下来就是调用Python标准的http库发送请求：
+resp = opener(req)，其等价于resp = urllib2.urlopen(urllib2.Request())，最后组装Response对象就结束了。
+
+到此requests模块的V0.2.0版本的解析就结束了，由于版本比较旧有些地方可能没有感受到独特之处，期待V0.2.1版本。
