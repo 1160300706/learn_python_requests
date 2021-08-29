@@ -1,3 +1,5 @@
+拆轮子开始啦！
+
 这篇文章对应的是requests v0.2.0版本：它包含requests文件夹、HISTORY文件、LICENSE、
 README和setup.py以及test_requests.py。 从README中我们可以看出作者的想法：
 
