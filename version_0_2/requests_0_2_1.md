@@ -97,5 +97,5 @@ req = urllib2.Request("http://localhost:5000", f,
 大多数时候，我们只需要调用register_openers方法，去注册新的流式http handlers，就可以了；
 此外必须指定Content-Length header，因为无法确定产生的总大小同时也无法重置迭代器。
 
-该方法会在全局默认的urllib2的opener对象中注册流式http处理服务，然后返回该创建的对象。
+而register_openers方法会在全局默认的urllib2的opener对象中注册流式http处理服务，然后返回该创建的对象。
 在此处
