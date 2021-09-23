@@ -25,41 +25,15 @@
 		return '<Request [%s]>' % (self.method)
 
 send中GET、HEAD、DELETE等类型的方法没有变更，而在PUT和POST方法中增加了对files属性适配。
-以PUT方法为例，增加部分如下（*号之间的内容）：
+以PUT方法为例，增加部分如下：
 
-		elif self.method == 'PUT':
-			if (not self.sent) or anyway:
-
-				********if self.files:
-					register_openers()
-					datagen, headers = multipart_encode(self.files)
-					req = _Request(self.url, data=datagen, headers=headers, method='PUT')
-
-					if self.headers:
-						req.headers.update(self.headers)********
-
-				else:
-
-					req = _Request(self.url, method='PUT')
-
-					if self.headers:
-						req.headers = self.headers
-
-					req.data = self.data
-
-				try:
-					opener = self._get_opener()
-					resp =  opener(req)
-
-					self.response.status_code = resp.code
-					self.response.headers = resp.info().dict
-					self.response.content = resp.read()
-					self.response.url = resp.url
-
-					success = True
-
-				except urllib2.HTTPError as why:
-					self.response.status_code = why.code
+    if self.files:
+        register_openers()
+        datagen, headers = multipart_encode(self.files)
+        req = _Request(self.url, data=datagen, headers=headers, method='PUT')
+        
+        if self.headers:
+            req.headers.update(self.headers)
 
 新增部分调用了register_openers方法，该方法位于/requests/pacakges/poster的streaminghttp模块中，
 该模块的功能说明如下：
@@ -97,5 +71,24 @@ req = urllib2.Request("http://localhost:5000", f,
 大多数时候，我们只需要调用register_openers方法，去注册新的流式http handlers，就可以了；
 此外必须指定Content-Length header，因为无法确定产生的总大小同时也无法重置迭代器。
 
-而register_openers方法会在全局默认的urllib2的opener对象中注册流式http处理服务，然后返回该创建的对象。
-在此处
+而register_openers方法会在全局默认的urllib2的opener对象中注册流式http处理服务，然后返回该创建的对象，其实现如下：
+
+def register_openers():
+
+    """Register the streaming http handlers in the global urllib2 default
+    opener object.
+    Returns the created OpenerDirector object."""
+
+    handlers = [StreamingHTTPHandler, StreamingHTTPRedirectHandler]
+    if hasattr(httplib, "HTTPS"):
+        handlers.append(StreamingHTTPSHandler)
+
+    opener = urllib2.build_opener(*handlers)
+
+    urllib2.install_opener(opener)
+
+    return opener
+
+在此处有一个hasattr方法，通过该方法判断判断httplib对象是否有HTTPS属性，如果有就将StreamingHTTPSHandler类
+加入到handlers中；然后调用urllib2中的build_opener方法，依据传入的自定义的handlers生成一个opener对象，并对opener对象初始化然后返回。
+调用完register_openers方法后，接着调用了在packages/poster/encode.py中提供的multipart_encode方法，通过该方法对输入的files进行
