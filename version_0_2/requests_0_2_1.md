@@ -91,4 +91,46 @@ def register_openers():
 
 在此处有一个hasattr方法，通过该方法判断判断httplib对象是否有HTTPS属性，如果有就将StreamingHTTPSHandler类
 加入到handlers中；然后调用urllib2中的build_opener方法，依据传入的自定义的handlers生成一个opener对象，并对opener对象初始化然后返回。
-调用完register_openers方法后，接着调用了在packages/poster/encode.py中提供的multipart_encode方法，通过该方法对输入的files进行
+调用完register_openers方法后，接着调用了在packages/poster/encode.py中提供的multipart_encode方法，通过该方法对输入的files参数转化为
+multipart/form-data的格式。该方法的使用说明如下：
+
+def multipart_encode(params, boundary=None, cb=None):
+
+    ``params`` should be a sequence of (name, value) pairs or MultipartParam
+    objects, or a mapping of names to values.
+    Values are either strings parameter values, or file-like objects to use as
+    the parameter value.  The file-like objects must support .read() and either
+    .fileno() or both .seek() and .tell().
+
+    If ``boundary`` is set, then it as used as the MIME boundary.  Otherwise
+    a randomly generated boundary will be used.  In either case, if the
+    boundary string appears in the parameter values a ValueError will be
+    raised.
+
+    If ``cb`` is set, it should be a callback which will get called as blocks
+    of data are encoded.  It will be called with (param, current, total),
+    indicating the current parameter being encoded, the current amount encoded,
+    and the total amount to encode.
+
+    Returns a tuple of `datagen`, `headers`, where `datagen` is a
+    generator that will yield blocks of data that make up the encoded
+    parameters, and `headers` is a dictionary with the assoicated
+    Content-Type and Content-Length headers.
+
+    Examples:
+
+    >>> datagen, headers = multipart_encode( [("key", "value1"), ("key", "value2")] )
+    >>> s = "".join(datagen)
+    >>> assert "value2" in s and "value1" in s
+
+    >>> p = MultipartParam("key", "value2")
+    >>> datagen, headers = multipart_encode( [("key", "value1"), p] )
+    >>> s = "".join(datagen)
+    >>> assert "value2" in s and "value1" in s
+
+    >>> datagen, headers = multipart_encode( {"key": "value1"} )
+    >>> s = "".join(datagen)
+    >>> assert "value2" not in s and "value1" in s
+
+其中params参数可以是字典、MultipartParam对象或者是一组（name，value）数据，其中value的类型要么是string，要么是和文件对象类似的对象（该对象
+必须支持read方和fileno方法或者是seek和tell方法）。
